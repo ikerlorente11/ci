@@ -1,0 +1,39 @@
+name: Tests Python
+
+on:
+  workflow_call:
+    inputs:
+      directory:
+        description: Carpeta del proyecto Python
+        type: string
+        default: "."
+      python:
+        type: string
+        default: "3.12"
+      deps:
+        description: Fichero de dependencias (para la caché de pip), relativo a directory
+        type: string
+        default: pyproject.toml
+      install:
+        type: string
+        default: pip install -q ".[dev]"
+      test:
+        type: string
+        default: pytest -q
+
+jobs:
+  test:
+    name: ${{ inputs.directory == '.' && 'python' || inputs.directory }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.directory }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python }}
+          cache: pip
+          cache-dependency-path: ${{ inputs.directory }}/${{ inputs.deps }}
+      - run: ${{ inputs.install }}
+      - run: ${{ inputs.test }}

@@ -1,0 +1,33 @@
+name: Tests Node
+
+on:
+  workflow_call:
+    inputs:
+      directory:
+        description: Carpeta con package.json y package-lock.json
+        type: string
+        default: "."
+      node:
+        type: string
+        default: "22"
+      test:
+        description: Comprobaciones tras npm ci (tests, tipos, build…)
+        type: string
+        default: npm test
+
+jobs:
+  test:
+    name: ${{ inputs.directory == '.' && 'node' || inputs.directory }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.directory }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node }}
+          cache: npm
+          cache-dependency-path: ${{ inputs.directory }}/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: ${{ inputs.test }}
