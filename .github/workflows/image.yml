@@ -40,8 +40,14 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      # Imagen reproducible: con la fecha fija y sin la atestación de procedencia (que lleva el commit), si nada de lo
+      # que entra en la imagen ha cambiado sale idéntica (mismo digest), y `docker compose up -d` no reinicia nada.
+      # Por eso `docker images` las muestra creadas en 1970.
       - uses: docker/build-push-action@v6
+        env:
+          SOURCE_DATE_EPOCH: 0
         with:
+          provenance: false
           context: ${{ inputs.context }}
           file: ${{ inputs.file != '' && inputs.file || format('{0}/Dockerfile', inputs.context) }}
           platforms: ${{ inputs.platforms }}
