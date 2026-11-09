@@ -14,6 +14,10 @@ on:
         description: Fichero de dependencias (para la caché de pip), relativo a directory
         type: string
         default: pyproject.toml
+      cache:
+        description: Caché de pip (false si el proyecto no instala dependencias)
+        type: boolean
+        default: true
       apt:
         description: Paquetes del sistema que necesitan los tests (apt-get)
         type: string
@@ -37,7 +41,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ inputs.python }}
-          cache: pip
+          cache: ${{ inputs.cache && 'pip' || '' }}
           cache-dependency-path: ${{ inputs.directory }}/${{ inputs.deps }}
       - if: inputs.apt != ''
         run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ${{ inputs.apt }}
