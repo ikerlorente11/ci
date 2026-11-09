@@ -14,12 +14,16 @@ on:
         description: Fichero de dependencias (para la caché de pip), relativo a directory
         type: string
         default: pyproject.toml
+      apt:
+        description: Paquetes del sistema que necesitan los tests (apt-get)
+        type: string
+        default: ""
       install:
         type: string
         default: pip install -q ".[dev]"
       test:
         type: string
-        default: pytest -q
+        default: python -m pytest -q
 
 jobs:
   test:
@@ -35,5 +39,7 @@ jobs:
           python-version: ${{ inputs.python }}
           cache: pip
           cache-dependency-path: ${{ inputs.directory }}/${{ inputs.deps }}
+      - if: inputs.apt != ''
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ${{ inputs.apt }}
       - run: ${{ inputs.install }}
       - run: ${{ inputs.test }}

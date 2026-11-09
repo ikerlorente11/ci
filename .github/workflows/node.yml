@@ -4,14 +4,26 @@ on:
   workflow_call:
     inputs:
       directory:
-        description: Carpeta con package.json y package-lock.json
+        description: Carpeta con package.json
         type: string
         default: "."
       node:
         type: string
         default: "22"
+      manager:
+        description: npm o pnpm
+        type: string
+        default: npm
+      pnpm:
+        description: Versión de pnpm (si manager es pnpm)
+        type: string
+        default: "10.17.1"
+      install:
+        description: Instalación (por defecto npm ci / pnpm install --frozen-lockfile)
+        type: string
+        default: ""
       test:
-        description: Comprobaciones tras npm ci (tests, tipos, build…)
+        description: Comprobaciones tras instalar (tests, tipos, build…)
         type: string
         default: npm test
 
@@ -22,12 +34,19 @@ jobs:
     defaults:
       run:
         working-directory: ${{ inputs.directory }}
+    env:
+      LOCK: ${{ inputs.directory }}/${{ inputs.manager == 'pnpm' && 'pnpm-lock.yaml' || 'package-lock.json' }}
     steps:
       - uses: actions/checkout@v4
+      - if: inputs.manager == 'pnpm'
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ inputs.pnpm }}
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.node }}
-          cache: npm
-          cache-dependency-path: ${{ inputs.directory }}/package-lock.json
-      - run: npm ci --no-audit --no-fund
+          # Sin lockfile en el repo no hay con qué indexar la caché.
+          cache: ${{ hashFiles(env.LOCK) != '' && inputs.manager || '' }}
+          cache-dependency-path: ${{ env.LOCK }}
+      - run: ${{ inputs.install != '' && inputs.install || (inputs.manager == 'pnpm' && 'pnpm install --frozen-lockfile' || 'npm ci --no-audit --no-fund') }}
       - run: ${{ inputs.test }}

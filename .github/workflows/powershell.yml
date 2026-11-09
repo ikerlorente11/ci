@@ -1,0 +1,34 @@
+name: Comprobación PowerShell
+
+# Para los proyectos de escritorio en PowerShell: que todos los .ps1 se puedan analizar (sin errores de sintaxis) y,
+# si hay tests de Pester (*.Tests.ps1), que pasen.
+
+on:
+  workflow_call:
+    inputs:
+      directory:
+        type: string
+        default: "."
+
+jobs:
+  check:
+    name: powershell
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: ${{ inputs.directory }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sintaxis de todos los .ps1
+        run: |
+          $bad = 0
+          Get-ChildItem -Recurse -Include *.ps1, *.psm1 | ForEach-Object {
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errors) | Out-Null
+            foreach ($e in $errors) { "::error file=$($_.FullName),line=$($e.Extent.StartLineNumber)::$($e.Message)"; $bad++ }
+          }
+          if ($bad) { exit 1 }
+      - name: Tests de Pester
+        run: |
+          if (Get-ChildItem -Recurse -Filter *.Tests.ps1) { Invoke-Pester -CI } else { 'Sin tests de Pester' }
